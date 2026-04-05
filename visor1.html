@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.4.0/model-viewer.min.js"></script>
+    <style>
+        :root {
+            --primary: #00e5ff;
+            --bg: rgba(5, 11, 20, 0.85);
+            --border: rgba(0, 229, 255, 0.3);
+        }
+        body { margin: 0; padding: 0; background: #050b14; font-family: 'Segoe UI', sans-serif; overflow: hidden; width: 100vw; height: 100vh; }
+        model-viewer { width: 100%; height: 100%; outline: none; --poster-color: transparent; }
+
+        #hud {
+            position: absolute; top: 15px; left: 15px;
+            background: var(--bg); backdrop-filter: blur(8px);
+            border: 1px solid var(--border); border-radius: 6px;
+            padding: 12px; color: white; width: 180px; z-index: 100;
+        }
+        h2 { font-size: 12px; margin: 0 0 8px 0; color: var(--primary); }
+        .layer-item { font-size: 11px; margin-bottom: 5px; display: flex; align-items: center; color: #8c9bba; }
+        .status-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--primary); margin-right: 8px; box-shadow: 0 0 4px var(--primary); }
+        #scan-alert { font-size: 10px; color: #ffaa00; margin-top: 10px; font-weight: bold; display: none; }
+    </style>
+</head>
+<body>
+
+    <div id="hud">
+        <h2>TELEMETRÍA 3D</h2>
+        <div class="layer-item"><div class="status-dot"></div> <span id="layer-name">Cargando modelo...</span></div>
+        <div id="scan-alert">⚠️ MODO RAYOS X ACTIVO</div>
+    </div>
+
+    <model-viewer 
+        id="arcaModel"
+        src="https://cdn.jsdelivr.net/gh/osfeguqui/arca@4f9a3b1ce290b94c3ee55e9afbae4b7caebd456d/ark.glb" 
+        camera-controls 
+        auto-rotate 
+        environment-image="neutral" 
+        exposure="1.2"
+        bounds="tight">
+    </model-viewer>
+
+    <script>
+        const mv = document.querySelector("#arcaModel");
+        const layerText = document.getElementById('layer-name');
+        const scanAlert = document.getElementById('scan-alert');
+        
+        const params = new URLSearchParams(window.location.search);
+        const capaActiva = params.get('capa') || 'Modelo Completo';
+
+        mv.addEventListener('load', () => {
+            layerText.innerText = "Vista: " + capaActiva;
+
+            // Lógica de Rayos X y Cámara
+            if (capaActiva !== "Modelo Completo") {
+                scanAlert.style.display = "block"; // Encender alerta visual
+                
+                // Convertir todos los materiales en cristal holográfico
+                mv.model.materials.forEach(mat => {
+                    mat.setAlphaMode('BLEND');
+                    // Aplicar color cian translúcido (R, G, B, Opacidad)
+                    mat.pbrMetallicRoughness.setBaseColorFactor([0.0, 0.9, 1.0, 0.15]); 
+                    mat.pbrMetallicRoughness.setMetallicFactor(0.8);
+                    mat.pbrMetallicRoughness.setRoughnessFactor(0.1);
+                });
+
+                // Vuelos de cámara hacia el interior
+                if (capaActiva.includes("Piso 1")) {
+                    mv.cameraTarget = "auto auto auto";
+                    mv.cameraOrbit = "90deg 85deg 40%"; 
+                } else if (capaActiva.includes("Piso 2")) {
+                    mv.cameraTarget = "auto auto auto";
+                    mv.cameraOrbit = "90deg 70deg 40%"; 
+                } else if (capaActiva.includes("Piso 3")) {
+                    mv.cameraTarget = "auto auto auto";
+                    mv.cameraOrbit = "90deg 45deg 40%"; 
+                }
+            } else {
+                // Modelo Completo: Restaurar cámara exterior
+                scanAlert.style.display = "none";
+                mv.cameraTarget = "auto auto auto";
+                mv.cameraOrbit = "45deg 75deg 100%"; 
+            }
+        });
+    </script>
+</body>
+</html>
